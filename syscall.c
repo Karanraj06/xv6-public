@@ -128,6 +128,12 @@ static int (*syscalls[])(void) = {
 [SYS_close]   sys_close,
 };
 
+static char *syscall_list[23] = {
+    "none", "fork", "exit", "wait", "pipe", "read", "kill", "exec",
+    "fstat", "chdir", "dup", "getpid", "sbrk", "sleep", "uptime", "open",
+    "write", "mknod", "unlink", "link", "mkdir", "close"
+};
+
 void
 syscall(void)
 {
@@ -137,6 +143,8 @@ syscall(void)
   num = curproc->tf->eax;
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     curproc->tf->eax = syscalls[num]();
+    // Uncomment the following line to test Part 1 - System Call Tracing
+    // cprintf("%d: syscall %s -> %d\n", curproc->pid, syscall_list[num], curproc->tf->eax);
   } else {
     cprintf("%d %s: unknown sys call %d\n",
             curproc->pid, curproc->name, num);
