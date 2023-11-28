@@ -1,3 +1,7 @@
+#include "stat.h"
+int getprocinfo(int ,struct uproc *);
+
+
 // Per-CPU state
 struct cpu {
   uchar apicid;                // Local APIC ID

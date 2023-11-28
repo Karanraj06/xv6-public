@@ -1,6 +1,9 @@
+#pragma once
+
 #define T_DIR  1   // Directory
 #define T_FILE 2   // File
 #define T_DEV  3   // Device
+
 
 struct stat {
   short type;  // Type of file
@@ -8,4 +11,15 @@ struct stat {
   uint ino;    // Inode number
   short nlink; // Number of links to file
   uint size;   // Size of file in bytes
+};
+
+struct uproc
+{
+  char process_name[256];
+  int pid;
+  int ppid;
+  uint size;
+  int state;
+  int iswait;
+  int iskilled;
 };
