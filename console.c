@@ -2,6 +2,7 @@
 // Input is from the keyboard or serial port.
 // Output is written to the screen and serial port.
 
+#include "console.h"
 #include "types.h"
 #include "defs.h"
 #include "param.h"
@@ -14,6 +15,14 @@
 #include "mmu.h"
 #include "proc.h"
 #include "x86.h"
+
+struct {
+    uint prev_cmd_idx;
+    int curr_hist_idx;
+    int tot_cmds_saved;
+    uint cmd_len_arr[MAX_HISTORY];
+    char buffer_array[MAX_HISTORY][INPUT_BUF];
+} history_buf;
 
 static void consputc(int);
 
@@ -188,10 +197,75 @@ struct {
 
 #define C(x)  ((x)-'@')  // Control-x
 
+int history(char *buffer, int historyId) {
+    if (historyId < 0 || historyId > MAX_HISTORY - 1)
+        return 2;
+    if (historyId >= history_buf.tot_cmds_saved)
+        return 1;
+    memset(buffer, '\0', INPUT_BUF);
+    int tmp = (history_buf.prev_cmd_idx + historyId) % MAX_HISTORY;
+    memmove(buffer, history_buf.buffer_array[tmp], history_buf.cmd_len_arr[tmp]);
+    return 0;
+}
+
+// Empty the input buffer
+void empty_input_buf() {
+    input.e = input.r;
+}
+
+// Show the given buffer on the console
+void show_buf_on_console(char *given_buf, uint length) {
+    uint i = 0;
+    while (length--) {
+        consputc(given_buf[i]);
+        i++;
+    }
+}
+
+// Saves the current command to history (input buffer to history buffer)
+void save_to_history() {
+    // excluding '/n'
+    uint len = input.e - input.r - 1;
+
+    // excluding empty commands
+    if (len == 0) return;
+
+    history_buf.curr_hist_idx = -1;
+
+    if (history_buf.tot_cmds_saved < MAX_HISTORY) {
+        history_buf.tot_cmds_saved++;
+    }
+
+    history_buf.prev_cmd_idx = (history_buf.prev_cmd_idx - 1) % MAX_HISTORY;
+    history_buf.cmd_len_arr[history_buf.prev_cmd_idx] = len;
+
+    // save to history excluding '/n'
+    for (uint i = 0; i < len; i++) {
+        history_buf.buffer_array[history_buf.prev_cmd_idx][i] = input.buf[(input.r + i) % INPUT_BUF];
+    }
+}
+
+// Clear the console i.e., remove the last command from it
+void clear_console(void) {
+    while (input.e != input.w && input.buf[(input.e - 1) % INPUT_BUF] != '\n') {
+        input.e--;
+        consputc(BACKSPACE);
+    }
+}
+
+
+// Saves the given buffer to input buffer
+void save_buf_to_input_buf(char *given_buf, uint length) {
+    for (uint i = 0; i < length; i++) {
+        input.buf[(input.r + i) % INPUT_BUF] = given_buf[i];
+    }
+    input.e = input.r + length;
+}
+
 void
 consoleintr(int (*getc)(void))
 {
-  int c, doprocdump = 0;
+  int c, doprocdump = 0, idx;
 
   acquire(&cons.lock);
   while((c = getc()) >= 0){
@@ -213,14 +287,42 @@ consoleintr(int (*getc)(void))
         consputc(BACKSPACE);
       }
       break;
+    case UP_ARROW:
+        if (history_buf.curr_hist_idx < history_buf.tot_cmds_saved - 1) {
+            clear_console();
+            empty_input_buf();
+            history_buf.curr_hist_idx++;
+            idx = (history_buf.prev_cmd_idx + history_buf.curr_hist_idx) % MAX_HISTORY;
+            show_buf_on_console(history_buf.buffer_array[idx], history_buf.cmd_len_arr[idx]);
+            save_buf_to_input_buf(history_buf.buffer_array[idx], history_buf.cmd_len_arr[idx]);
+        }
+        break;
+    case DOWN_ARROW:
+        switch (history_buf.curr_hist_idx) {
+            case 0:
+                clear_console();
+                empty_input_buf();
+                history_buf.curr_hist_idx--;
+                break;
+
+            default:
+                clear_console();
+                history_buf.curr_hist_idx--;
+                idx = (history_buf.prev_cmd_idx + history_buf.curr_hist_idx) % MAX_HISTORY;
+                show_buf_on_console(history_buf.buffer_array[idx], history_buf.cmd_len_arr[idx]);
+                save_buf_to_input_buf(history_buf.buffer_array[idx], history_buf.cmd_len_arr[idx]);
+                break;
+        }
+        break;
     default:
       if(c != 0 && input.e-input.r < INPUT_BUF){
         c = (c == '\r') ? '\n' : c;
         input.buf[input.e++ % INPUT_BUF] = c;
         consputc(c);
         if(c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF){
-          input.w = input.e;
-          wakeup(&input.r);
+            save_to_history();
+            input.w = input.e;
+            wakeup(&input.r);
         }
       }
       break;
@@ -293,7 +395,7 @@ consoleinit(void)
   devsw[CONSOLE].write = consolewrite;
   devsw[CONSOLE].read = consoleread;
   cons.locking = 1;
-
+  history_buf.tot_cmds_saved = 0;
+  history_buf.prev_cmd_idx = 0;
   ioapicenable(IRQ_KBD, 0);
 }
-

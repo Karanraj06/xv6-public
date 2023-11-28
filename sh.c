@@ -1,8 +1,9 @@
 // Shell.
 
+#include "console.h"
+#include "fcntl.h"
 #include "types.h"
 #include "user.h"
-#include "fcntl.h"
 
 // Parsed command representation
 #define EXEC  1
@@ -52,6 +53,20 @@ struct backcmd {
 int fork1(void);  // Fork but panics on failure.
 void panic(char*);
 struct cmd *parsecmd(char*);
+
+char curr_history[INPUT_BUF];
+
+void show_history() {
+    for (int i = 0, cnt = 0; i < MAX_HISTORY; i++) {
+        if (history(curr_history, MAX_HISTORY - i - 1) == 0) {
+            cnt++;
+            if (cnt < 10)
+                printf(1, " %d: %s\n", cnt, curr_history);
+            else
+                printf(1, "%d: %s\n", cnt, curr_history);
+        }
+    }
+}
 
 // Execute cmd.  Never returns.
 void
@@ -164,6 +179,12 @@ main(void)
         printf(2, "cannot cd %s\n", buf+3);
       continue;
     }
+
+    if (buf[0] == 'h' && buf[1] == 'i' && buf[2] == 's' && buf[3] == 't' && buf[4] == 'o' && buf[5] == 'r' && buf[6] == 'y' && buf[7] == '\n') {
+        show_history();
+        continue;
+    }
+
     if(fork1() == 0)
       runcmd(parsecmd(buf));
     wait();

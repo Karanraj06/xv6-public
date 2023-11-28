@@ -89,3 +89,24 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+// Part 3: : Maintaining History of commands in xv6
+// Add a history system call:
+// int history(char * buffer, int historyId)
+// Input:
+// char * buffer - a pointer to a buffer that will hold the history command,
+// Assume max buffer size 128.
+// historyId - The history line requested, values 0 to 15
+// Output:
+// 0 ‐ History copied to the buffer properly
+// ‐ 1 ‐ No history for the given id
+// ‐ 2 ‐ historyId illegal
+int sys_history(void) {
+    char *buffer;
+    int historyId;
+
+    argptr(0, &buffer, 1);
+    argint(1, &historyId);
+
+    return history(buffer, historyId);
+}

@@ -103,6 +103,7 @@ extern int sys_unlink(void);
 extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
+extern int sys_history(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -126,13 +127,15 @@ static int (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
-};
+[SYS_history] sys_history,
+};  
 
-static char *syscall_list[23] = {
-    "none", "fork", "exit", "wait", "pipe", "read", "kill", "exec",
-    "fstat", "chdir", "dup", "getpid", "sbrk", "sleep", "uptime", "open",
-    "write", "mknod", "unlink", "link", "mkdir", "close"
-};
+// Uncomment the following line to test Part 1 - System Call Tracing
+// static char *syscall_list[23] = {
+//     "none", "fork", "exit", "wait", "pipe", "read", "kill", "exec",
+//     "fstat", "chdir", "dup", "getpid", "sbrk", "sleep", "uptime", "open",
+//     "write", "mknod", "unlink", "link", "mkdir", "close", "history"
+// };
 
 void
 syscall(void)

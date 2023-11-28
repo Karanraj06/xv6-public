@@ -23,6 +23,8 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+// Part 3: : Maintaining History of commands in xv6
+int history(char*, int);
 
 // ulib.c
 int stat(const char*, struct stat*);
