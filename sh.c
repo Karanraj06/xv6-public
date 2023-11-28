@@ -167,6 +167,8 @@ main(void)
     if(fork1() == 0)
       runcmd(parsecmd(buf));
     wait();
+    // removing wait and adding wait2 here,for user
+  
   }
   exit();
 }
